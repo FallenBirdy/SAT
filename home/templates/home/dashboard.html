@@ -1,0 +1,267 @@
+{% extends 'home/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Summary Cards -->
+  <div class="col-md-4 mb-4">
+    <div class="card bg-primary text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title">Total Workouts</h6>
+            <h2 class="mb-0" id="totalWorkouts">0</h2>
+          </div>
+          <i class="fas fa-dumbbell fa-3x opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4 mb-4">
+    <div class="card bg-success text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title">Active Goals</h6>
+            <h2 class="mb-0" id="activeGoals">0</h2>
+          </div>
+          <i class="fas fa-bullseye fa-3x opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4 mb-4">
+    <div class="card bg-info text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title">Weight Entries</h6>
+            <h2 class="mb-0" id="weightEntries">0</h2>
+          </div>
+          <i class="fas fa-weight fa-3x opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Recent Activity -->
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Recent Activity</h5>
+      </div>
+      <div class="card-body">
+        <ul class="list-group" id="recentActivity">
+          <li class="list-group-item text-center">Loading activity...</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Goal Progress -->
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Goal Progress</h5>
+      </div>
+      <div class="card-body">
+        <div id="goalProgressContainer">
+          <p class="text-center">Loading goals...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Weight Chart -->
+  <div class="col-12 mb-4">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Weight Progress</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="dashboardWeightChart" height="250"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize dashboard data
+    loadDashboardData();
+    
+    function loadDashboardData() {
+      // Load weight data
+      fetch('/weight-history/')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            updateWeightChart(data.weight_history);
+            document.getElementById('weightEntries').textContent = data.weight_history.length;
+          }
+        })
+        .catch(error => console.error('Error loading weight history:', error));
+      
+      // Load workout and goal data
+      fetch('/dashboard-data/')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Update summary cards
+            document.getElementById('totalWorkouts').textContent = data.workout_count;
+            document.getElementById('activeGoals').textContent = data.active_goals_count;
+            
+            // Update recent activity
+            updateRecentActivity(data.recent_activity);
+            
+            // Update goal progress
+            updateGoalProgress(data.goals);
+          }
+        })
+        .catch(error => {
+          console.error('Error loading dashboard data:', error);
+          // Show fallback message if API endpoint doesn't exist yet
+          document.getElementById('recentActivity').innerHTML = 
+            '<li class="list-group-item text-center">No recent activity found</li>';
+          document.getElementById('goalProgressContainer').innerHTML = 
+            '<p class="text-center">No goals found</p>';
+        });
+    }
+    
+    function updateWeightChart(weightData) {
+      if (weightData.length === 0) {
+        document.getElementById('dashboardWeightChart').parentNode.innerHTML = 
+          '<p class="text-center">No weight data available</p>';
+        return;
+      }
+      
+      // Sort data by date
+      weightData.sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      // Get last 10 entries only
+      const recentData = weightData.slice(-10);
+      
+      const ctx = document.getElementById('dashboardWeightChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: recentData.map(entry => formatDate(entry.date)),
+          datasets: [{
+            label: 'Weight (kg)',
+            data: recentData.map(entry => entry.weight),
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 2,
+            tension: 0.1,
+            pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+            pointRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: false
+            }
+          }
+        }
+      });
+    }
+    
+    function updateRecentActivity(activities) {
+      const activityList = document.getElementById('recentActivity');
+      
+      if (!activities || activities.length === 0) {
+        activityList.innerHTML = '<li class="list-group-item text-center">No recent activity found</li>';
+        return;
+      }
+      
+      activityList.innerHTML = '';
+      
+      activities.forEach(activity => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+        
+        let icon, text;
+        
+        if (activity.type === 'workout') {
+          icon = '<i class="fas fa-dumbbell text-primary"></i>';
+          text = `Logged ${activity.exercise} (${activity.sets}×${activity.reps} @ ${activity.weight}kg)`;
+        } else if (activity.type === 'goal') {
+          icon = '<i class="fas fa-bullseye text-success"></i>';
+          text = `Set goal: ${activity.title}`;
+        } else if (activity.type === 'weight') {
+          icon = '<i class="fas fa-weight text-info"></i>';
+          text = `Logged weight: ${activity.weight}kg`;
+        }
+        
+        li.innerHTML = `
+          <div>
+            <span class="me-2">${icon}</span>
+            <span>${text}</span>
+          </div>
+          <small class="text-muted">${formatDate(activity.date)}</small>
+        `;
+        
+        activityList.appendChild(li);
+      });
+    }
+    
+    function updateGoalProgress(goals) {
+      const container = document.getElementById('goalProgressContainer');
+      
+      if (!goals || goals.length === 0) {
+        container.innerHTML = '<p class="text-center">No goals found</p>';
+        return;
+      }
+      
+      container.innerHTML = '';
+      
+      goals.forEach(goal => {
+        const progressBarClass = getProgressBarClass(goal.progress);
+        
+        const goalElement = document.createElement('div');
+        goalElement.className = 'mb-3';
+        goalElement.innerHTML = `
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <h6 class="mb-0">${goal.title}</h6>
+            <span class="badge bg-${progressBarClass}">${goal.progress}%</span>
+          </div>
+          <div class="progress">
+            <div class="progress-bar bg-${progressBarClass}" role="progressbar" 
+                 style="width: ${goal.progress}%" aria-valuenow="${goal.progress}" 
+                 aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          <small class="text-muted">${goal.details || 'No details'}</small>
+        `;
+        
+        container.appendChild(goalElement);
+      });
+    }
+    
+    function getProgressBarClass(progress) {
+      if (progress < 25) return 'danger';
+      if (progress < 50) return 'warning';
+      if (progress < 75) return 'info';
+      return 'success';
+    }
+    
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    }
+  });
+</script>
+{% endblock %}

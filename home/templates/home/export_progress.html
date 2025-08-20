@@ -1,0 +1,58 @@
+{% extends 'home/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Export Progress</h1>
+    <p class="lead">Download your workout and weight tracking history in various formats.</p>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Workout History</h5>
+                    <p class="card-text">Export your complete workout history including exercises, sets, reps, and weights.</p>
+                    <div class="d-flex">
+                        <a href="{% url 'export_workout_csv' %}" class="btn btn-primary me-2">
+                            <i class="fas fa-file-csv"></i> Download CSV
+                        </a>
+                        <a href="{% url 'export_workout_pdf' %}" class="btn btn-danger">
+                            <i class="fas fa-file-pdf"></i> Download PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Weight Tracking History</h5>
+                    <p class="card-text">Export your weight tracking data to monitor your progress over time.</p>
+                    <div class="d-flex">
+                        <a href="{% url 'export_weight_csv' %}" class="btn btn-primary me-2">
+                            <i class="fas fa-file-csv"></i> Download CSV
+                        </a>
+                        <a href="{% url 'export_weight_pdf' %}" class="btn btn-danger">
+                            <i class="fas fa-file-pdf"></i> Download PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Data Privacy Information</h5>
+                    <p class="card-text">
+                        The exported files contain your personal fitness data. Please be mindful of how you store and share these files.
+                        Your data is exported directly to your device and is not shared with any third parties during this process.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

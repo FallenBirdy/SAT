@@ -1,0 +1,570 @@
+{% extends 'home/base.html' %}
+
+{% block title %}Personal Bests{% endblock %}
+
+{% block page_title %}Personal Bests (PR Tracker){% endblock %}
+
+{% block extra_css %}
+<style>
+  .pr-card {
+    transition: transform 0.2s;
+  }
+  
+  .pr-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .pr-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    z-index: 10;
+  }
+  
+  .pr-category {
+    border-left: 4px solid #3498db;
+    padding-left: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .celebration-animation {
+    animation: celebrate 1s ease-in-out;
+  }
+  
+  @keyframes celebrate {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  
+  .pr-notes {
+    font-style: italic;
+    color: #6c757d;
+  }
+  
+  .pr-date {
+    font-size: 0.8rem;
+    color: #6c757d;
+  }
+  
+  .category-icon {
+    font-size: 1.5rem;
+    margin-right: 10px;
+    color: #3498db;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+  <div class="col-md-8">
+    <!-- PR Categories -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <h4 class="mb-4">Your Personal Records</h4>
+        
+        <!-- Strength Category -->
+        <div class="pr-category">
+          <h5><i class="fas fa-dumbbell category-icon"></i>Strength</h5>
+          <div class="row" id="strength-prs">
+            <!-- PRs will be loaded here -->
+            <div class="col-12 text-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Cardio Category -->
+        <div class="pr-category">
+          <h5><i class="fas fa-running category-icon"></i>Cardio</h5>
+          <div class="row" id="cardio-prs">
+            <!-- PRs will be loaded here -->
+            <div class="col-12 text-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Flexibility Category -->
+        <div class="pr-category">
+          <h5><i class="fas fa-child category-icon"></i>Flexibility & Endurance</h5>
+          <div class="row" id="flexibility-prs">
+            <!-- PRs will be loaded here -->
+            <div class="col-12 text-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Other Category -->
+        <div class="pr-category">
+          <h5><i class="fas fa-medal category-icon"></i>Other</h5>
+          <div class="row" id="other-prs">
+            <!-- PRs will be loaded here -->
+            <div class="col-12 text-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <!-- Add New PR Form -->
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Add New Personal Best</h5>
+      </div>
+      <div class="card-body">
+        <form id="addPRForm">
+          <div class="mb-3">
+            <label for="prExercise" class="form-label">Exercise</label>
+            <input type="text" class="form-control" id="prExercise" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="prCategory" class="form-label">Category</label>
+            <select class="form-select" id="prCategory" required>
+              <option value="strength">Strength</option>
+              <option value="cardio">Cardio</option>
+              <option value="flexibility">Flexibility & Endurance</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label for="prValue" class="form-label">Value</label>
+            <input type="number" class="form-control" id="prValue" step="0.01" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="prUnit" class="form-label">Unit</label>
+            <select class="form-select" id="prUnit" required>
+              <option value="kg">kg</option>
+              <option value="lbs">lbs</option>
+              <option value="reps">reps</option>
+              <option value="seconds">seconds</option>
+              <option value="minutes">minutes</option>
+              <option value="hours">hours</option>
+              <option value="km">km</option>
+              <option value="miles">miles</option>
+              <option value="cm">cm</option>
+              <option value="inches">inches</option>
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label for="prDate" class="form-label">Date Achieved</label>
+            <input type="date" class="form-control" id="prDate" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="prNotes" class="form-label">Notes (optional)</label>
+            <textarea class="form-control" id="prNotes" rows="2"></textarea>
+          </div>
+          
+          <button type="submit" class="btn btn-primary w-100">Save Personal Best</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Recent PRs -->
+    <div class="card">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0">Recent Achievements</h5>
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush" id="recentPRs">
+          <!-- Recent PRs will be loaded here -->
+          <li class="list-group-item text-center py-3">No recent records</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PR Details Modal -->
+<div class="modal fade" id="prDetailsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="prModalTitle">Personal Best Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <strong>Exercise:</strong> <span id="modalPrExercise"></span>
+        </div>
+        <div class="mb-3">
+          <strong>Category:</strong> <span id="modalPrCategory"></span>
+        </div>
+        <div class="mb-3">
+          <strong>Value:</strong> <span id="modalPrValue"></span> <span id="modalPrUnit"></span>
+        </div>
+        <div class="mb-3">
+          <strong>Date Achieved:</strong> <span id="modalPrDate"></span>
+        </div>
+        <div class="mb-3">
+          <strong>Notes:</strong>
+          <p id="modalPrNotes"></p>
+        </div>
+        <div class="mb-3">
+          <strong>History:</strong>
+          <ul id="modalPrHistory" class="list-group">
+            <!-- PR history will be loaded here -->
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" id="deletePrBtn">Delete</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New PR Celebration Modal -->
+<div class="modal fade" id="celebrationModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body text-center py-5">
+        <div class="display-1 mb-4">
+          <i class="fas fa-trophy text-warning"></i>
+        </div>
+        <h2 class="mb-3">New Personal Best!</h2>
+        <p class="lead" id="celebrationText">You've set a new record!</p>
+        <div class="mt-4">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Keep Going!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+  <div id="prSuccessToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header bg-success text-white">
+      <strong class="me-auto">Success</strong>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body" id="prToastMessage">
+      Personal best saved successfully!
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Set today's date as default
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0];
+    document.getElementById('prDate').value = formattedDate;
+    
+    // Load personal bests
+    loadPersonalBests();
+    
+    // Event listener for adding new PR
+    document.getElementById('addPRForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      addPersonalBest();
+    });
+    
+    // Event listener for deleting PR
+    document.getElementById('deletePrBtn').addEventListener('click', function() {
+      deletePersonalBest();
+    });
+    
+    function loadPersonalBests() {
+      fetch('/personal-best-api/')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            displayPersonalBests(data.personal_bests);
+            displayRecentPRs(data.personal_bests);
+          }
+        })
+        .catch(error => {
+          console.error('Error loading personal bests:', error);
+          // Show fallback message if API endpoint doesn't exist yet
+          document.getElementById('strength-prs').innerHTML = 
+            '<div class="col-12 text-center">Failed to load personal bests</div>';
+          document.getElementById('cardio-prs').innerHTML = 
+            '<div class="col-12 text-center">Failed to load personal bests</div>';
+          document.getElementById('flexibility-prs').innerHTML = 
+            '<div class="col-12 text-center">Failed to load personal bests</div>';
+          document.getElementById('other-prs').innerHTML = 
+            '<div class="col-12 text-center">Failed to load personal bests</div>';
+        });
+    }
+    
+    function displayPersonalBests(personalBests) {
+      // Group by category
+      const categories = {
+        strength: [],
+        cardio: [],
+        flexibility: [],
+        other: []
+      };
+      
+      personalBests.forEach(pr => {
+        if (categories[pr.category]) {
+          categories[pr.category].push(pr);
+        } else {
+          categories.other.push(pr);
+        }
+      });
+      
+      // Display each category
+      displayCategoryPRs('strength-prs', categories.strength);
+      displayCategoryPRs('cardio-prs', categories.cardio);
+      displayCategoryPRs('flexibility-prs', categories.flexibility);
+      displayCategoryPRs('other-prs', categories.other);
+    }
+    
+    function displayCategoryPRs(containerId, prs) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      
+      if (prs.length === 0) {
+        container.innerHTML = '<div class="col-12 text-center py-3">No records yet</div>';
+        return;
+      }
+      
+      // Group by exercise
+      const exerciseGroups = {};
+      prs.forEach(pr => {
+        if (!exerciseGroups[pr.exercise]) {
+          exerciseGroups[pr.exercise] = [];
+        }
+        exerciseGroups[pr.exercise].push(pr);
+      });
+      
+      // For each exercise, display only the current PR
+      Object.keys(exerciseGroups).forEach(exercise => {
+        const exercisePRs = exerciseGroups[exercise];
+        const currentPR = exercisePRs.find(pr => pr.is_current) || exercisePRs[0];
+        
+        const col = document.createElement('div');
+        col.className = 'col-md-6 col-lg-4 mb-3';
+        
+        const card = document.createElement('div');
+        card.className = 'card h-100 pr-card';
+        card.setAttribute('data-pr-id', currentPR.id);
+        
+        // Add current PR badge if it's the current record
+        if (currentPR.is_current) {
+          const badge = document.createElement('div');
+          badge.className = 'pr-badge';
+          badge.innerHTML = '<span class="badge rounded-pill bg-success">Current PR</span>';
+          card.appendChild(badge);
+        }
+        
+        const cardBody = document.createElement('div');
+        cardBody.className = 'card-body';
+        
+        cardBody.innerHTML = `
+          <h5 class="card-title">${exercise}</h5>
+          <h3 class="card-text">${currentPR.value} ${currentPR.unit}</h3>
+          <p class="pr-notes">${currentPR.notes || ''}</p>
+          <p class="pr-date">Achieved on ${new Date(currentPR.date_achieved).toLocaleDateString()}</p>
+        `;
+        
+        card.appendChild(cardBody);
+        col.appendChild(card);
+        container.appendChild(col);
+        
+        // Add click event to show details
+        card.addEventListener('click', function() {
+          showPRDetails(currentPR, exercisePRs);
+        });
+      });
+    }
+    
+    function displayRecentPRs(personalBests) {
+      const container = document.getElementById('recentPRs');
+      container.innerHTML = '';
+      
+      // Sort by date (newest first)
+      const sortedPRs = [...personalBests].sort((a, b) => 
+        new Date(b.date_achieved) - new Date(a.date_achieved)
+      );
+      
+      // Take only the 5 most recent
+      const recentPRs = sortedPRs.slice(0, 5);
+      
+      if (recentPRs.length === 0) {
+        container.innerHTML = '<li class="list-group-item text-center py-3">No recent records</li>';
+        return;
+      }
+      
+      recentPRs.forEach(pr => {
+        const listItem = document.createElement('li');
+        listItem.className = 'list-group-item';
+        
+        const date = new Date(pr.date_achieved).toLocaleDateString();
+        
+        listItem.innerHTML = `
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>${pr.exercise}</strong>
+              <br>
+              <small>${pr.value} ${pr.unit} - ${date}</small>
+            </div>
+            ${pr.is_current ? '<span class="badge bg-success rounded-pill">Current</span>' : ''}
+          </div>
+        `;
+        
+        listItem.addEventListener('click', function() {
+          // Find all PRs for this exercise
+          const exercisePRs = personalBests.filter(p => p.exercise === pr.exercise);
+          showPRDetails(pr, exercisePRs);
+        });
+        
+        container.appendChild(listItem);
+      });
+    }
+    
+    function showPRDetails(pr, history) {
+      // Set modal content
+      document.getElementById('prModalTitle').textContent = `${pr.exercise} - Personal Best`;
+      document.getElementById('modalPrExercise').textContent = pr.exercise;
+      document.getElementById('modalPrCategory').textContent = pr.category.charAt(0).toUpperCase() + pr.category.slice(1);
+      document.getElementById('modalPrValue').textContent = pr.value;
+      document.getElementById('modalPrUnit').textContent = pr.unit;
+      document.getElementById('modalPrDate').textContent = new Date(pr.date_achieved).toLocaleDateString();
+      document.getElementById('modalPrNotes').textContent = pr.notes || 'No notes';
+      
+      // Show history
+      const historyContainer = document.getElementById('modalPrHistory');
+      historyContainer.innerHTML = '';
+      
+      // Sort history by date (newest first)
+      const sortedHistory = [...history].sort((a, b) => 
+        new Date(b.date_achieved) - new Date(a.date_achieved)
+      );
+      
+      sortedHistory.forEach(historyItem => {
+        const listItem = document.createElement('li');
+        listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+        
+        const date = new Date(historyItem.date_achieved).toLocaleDateString();
+        
+        listItem.innerHTML = `
+          <div>
+            ${historyItem.value} ${historyItem.unit} - ${date}
+          </div>
+          ${historyItem.is_current ? '<span class="badge bg-success rounded-pill">Current</span>' : ''}
+        `;
+        
+        historyContainer.appendChild(listItem);
+      });
+      
+      // Store PR ID in modal for deletion
+      document.getElementById('prDetailsModal').setAttribute('data-pr-id', pr.id);
+      
+      // Show modal
+      const modal = new bootstrap.Modal(document.getElementById('prDetailsModal'));
+      modal.show();
+    }
+    
+    function addPersonalBest() {
+      const exercise = document.getElementById('prExercise').value;
+      const category = document.getElementById('prCategory').value;
+      const value = document.getElementById('prValue').value;
+      const unit = document.getElementById('prUnit').value;
+      const date = document.getElementById('prDate').value;
+      const notes = document.getElementById('prNotes').value;
+      
+      fetch('/personal-best-api/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify({
+          exercise: exercise,
+          category: category,
+          value: value,
+          unit: unit,
+          date_achieved: date,
+          notes: notes
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Reset form
+          document.getElementById('prExercise').value = '';
+          document.getElementById('prValue').value = '';
+          document.getElementById('prNotes').value = '';
+          
+          // Reload personal bests
+          loadPersonalBests();
+          
+          // Show success toast
+          const toast = new bootstrap.Toast(document.getElementById('prSuccessToast'));
+          document.getElementById('prToastMessage').textContent = 'Personal best saved successfully!';
+          toast.show();
+          
+          // If it's a new PR, show celebration
+          if (data.is_new_pr) {
+            document.getElementById('celebrationText').textContent = 
+              `Congratulations! You've set a new personal record for ${exercise} with ${value} ${unit}!`;
+            
+            const celebrationModal = new bootstrap.Modal(document.getElementById('celebrationModal'));
+            celebrationModal.show();
+          }
+        } else {
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(error => console.error('Error adding personal best:', error));
+    }
+    
+    function deletePersonalBest() {
+      const modal = document.getElementById('prDetailsModal');
+      const prId = modal.getAttribute('data-pr-id');
+      
+      if (confirm('Are you sure you want to delete this personal best?')) {
+        fetch(`/personal-best-api/${prId}/`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Hide modal
+            bootstrap.Modal.getInstance(modal).hide();
+            
+            // Reload personal bests
+            loadPersonalBests();
+            
+            // Show success toast
+            const toast = new bootstrap.Toast(document.getElementById('prSuccessToast'));
+            document.getElementById('prToastMessage').textContent = 'Personal best deleted successfully!';
+            toast.show();
+          } else {
+            alert('Error: ' + data.error);
+          }
+        })
+        .catch(error => console.error('Error deleting personal best:', error));
+      }
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,233 @@
+{% extends 'home/base.html' %}
+
+{% block title %}Weight Tracker{% endblock %}
+
+{% block page_title %}Weight Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Weight Entry Form -->
+  <div class="col-md-4 mb-4">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Log Weight</h5>
+      </div>
+      <div class="card-body">
+        <form id="weightForm">
+          <div class="mb-3">
+            <label for="weight" class="form-label">Weight (kg)</label>
+            <input type="number" class="form-control" id="weight" step="0.1" required>
+          </div>
+          <div class="mb-3">
+            <label for="weightDate" class="form-label">Date</label>
+            <input type="date" class="form-control" id="weightDate" required>
+          </div>
+          <div class="mb-3">
+            <label for="weightNotes" class="form-label">Notes (optional)</label>
+            <textarea class="form-control" id="weightNotes" rows="2"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Log Weight</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Weight Chart -->
+  <div class="col-md-8 mb-4">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Weight Progress</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="weightChart" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Weight History Table -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Weight History</h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Weight (kg)</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="weightHistoryTable">
+              <!-- Weight entries will be added here dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+  <div id="weightSuccessToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header bg-success text-white">
+      <strong class="me-auto">Success</strong>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+      Weight logged successfully!
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Set today's date as default
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0];
+    document.getElementById('weightDate').value = formattedDate;
+    
+    // Initialize chart
+    const ctx = document.getElementById('weightChart').getContext('2d');
+    const weightChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Weight (kg)',
+          data: [],
+          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 2,
+          tension: 0.1,
+          pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+          pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: false
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              afterLabel: function(context) {
+                const dataIndex = context.dataIndex;
+                const notes = weightChart.data.datasets[0].notes[dataIndex];
+                return notes ? 'Notes: ' + notes : '';
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    // Add notes array to dataset for tooltips
+    weightChart.data.datasets[0].notes = [];
+    
+    // Load weight history
+    loadWeightHistory();
+    
+    // Handle form submission
+    document.getElementById('weightForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      logWeight();
+    });
+    
+    function loadWeightHistory() {
+      fetch('/weight-history/')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            updateWeightChart(data.weight_history);
+            updateWeightTable(data.weight_history);
+          }
+        })
+        .catch(error => console.error('Error loading weight history:', error));
+    }
+    
+    function logWeight() {
+      const weight = document.getElementById('weight').value;
+      const date = document.getElementById('weightDate').value;
+      const notes = document.getElementById('weightNotes').value;
+      
+      fetch('/log-weight/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify({
+          weight: weight,
+          date: date,
+          notes: notes
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Show success toast
+          const toast = new bootstrap.Toast(document.getElementById('weightSuccessToast'));
+          toast.show();
+          
+          // Reset form
+          document.getElementById('weight').value = '';
+          document.getElementById('weightNotes').value = '';
+          
+          // Update chart and table
+          updateWeightChart(data.weight_history);
+          updateWeightTable(data.weight_history);
+        } else {
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(error => console.error('Error logging weight:', error));
+    }
+    
+    function updateWeightChart(weightData) {
+      // Sort data by date
+      weightData.sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      // Update chart data
+      weightChart.data.labels = weightData.map(entry => formatDate(entry.date));
+      weightChart.data.datasets[0].data = weightData.map(entry => entry.weight);
+      weightChart.data.datasets[0].notes = weightData.map(entry => entry.notes);
+      weightChart.update();
+    }
+    
+    function updateWeightTable(weightData) {
+      // Sort data by date (newest first)
+      weightData.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      const tableBody = document.getElementById('weightHistoryTable');
+      tableBody.innerHTML = '';
+      
+      weightData.forEach(entry => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${formatDate(entry.date)}</td>
+          <td>${entry.weight} kg</td>
+          <td>${entry.notes || '-'}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+    
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    }
+  });
+</script>
+{% endblock %}

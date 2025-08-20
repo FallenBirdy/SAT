@@ -1,0 +1,313 @@
+{% extends 'home/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>AI Fitness Coach</h1>
+    <p class="lead">Get personalized fitness advice and answers to your workout questions.</p>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Ask a Question</h5>
+                    <form id="question-form">
+                        <div class="mb-3">
+                            <label for="question" class="form-label">Your Fitness Question</label>
+                            <textarea class="form-control" id="question" rows="3" placeholder="e.g., How can I improve my squat form?" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="submit-question">
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="loading-spinner"></span>
+                            <span id="submit-text">Ask AI Coach</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4" id="answer-card" style="display: none;">
+                <div class="card-body">
+                    <h5 class="card-title">AI Coach Response</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted" id="answer-timestamp"></small>
+                        <button class="btn btn-sm btn-outline-secondary" id="new-question-btn">Ask Another Question</button>
+                    </div>
+                    <div class="card-text">
+                        <div class="mb-3">
+                            <strong>Your Question:</strong>
+                            <p id="display-question"></p>
+                        </div>
+                        <div>
+                            <strong>AI Coach Answer:</strong>
+                            <div id="display-answer" class="mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Previous Questions</h5>
+                    <div id="question-history">
+                        <p class="text-center" id="no-history-message">No previous questions yet.</p>
+                        <!-- Question history will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Question Detail Modal -->
+<div class="modal fade" id="questionDetailModal" tabindex="-1" aria-labelledby="questionDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="questionDetailModalLabel">Question Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Your Question:</strong>
+                    <p id="modal-question"></p>
+                </div>
+                <div>
+                    <strong>AI Coach Answer:</strong>
+                    <div id="modal-answer" class="mt-2"></div>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted" id="modal-timestamp"></small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="delete-question-btn">Delete Question</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load question history
+        loadQuestionHistory();
+        
+        // Handle question form submission
+        document.getElementById('question-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitQuestion();
+        });
+        
+        // Handle new question button click
+        document.getElementById('new-question-btn').addEventListener('click', function() {
+            document.getElementById('answer-card').style.display = 'none';
+            document.getElementById('question').value = '';
+            document.getElementById('question-form').style.display = 'block';
+        });
+        
+        // Handle delete question button click
+        document.getElementById('delete-question-btn').addEventListener('click', function() {
+            const questionId = this.dataset.questionId;
+            if (questionId) {
+                deleteQuestion(questionId);
+            }
+        });
+    });
+    
+    function loadQuestionHistory() {
+        fetch('/ai-coach-api/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateQuestionHistory(data.questions);
+                } else {
+                    console.error('Error loading questions:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching questions:', error);
+            });
+    }
+    
+    function updateQuestionHistory(questions) {
+        const historyContainer = document.getElementById('question-history');
+        const noHistoryMessage = document.getElementById('no-history-message');
+        
+        // Clear existing content
+        historyContainer.innerHTML = '';
+        
+        if (questions.length === 0) {
+            historyContainer.appendChild(noHistoryMessage);
+            return;
+        }
+        
+        // Add questions to history
+        const list = document.createElement('ul');
+        list.className = 'list-group';
+        
+        questions.forEach(question => {
+            const item = document.createElement('li');
+            item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+            item.innerHTML = `
+                <div class="question-preview">
+                    <div class="fw-bold">${truncateText(question.question, 50)}</div>
+                    <small class="text-muted">${question.created_at}</small>
+                </div>
+                <button class="btn btn-sm btn-outline-primary view-question" data-question-id="${question.id}">View</button>
+            `;
+            
+            list.appendChild(item);
+        });
+        
+        historyContainer.appendChild(list);
+        
+        // Add event listeners to view buttons
+        document.querySelectorAll('.view-question').forEach(button => {
+            button.addEventListener('click', function() {
+                const questionId = this.dataset.questionId;
+                viewQuestionDetails(questionId);
+            });
+        });
+    }
+    
+    function submitQuestion() {
+        const questionText = document.getElementById('question').value.trim();
+        
+        if (!questionText) {
+            alert('Please enter a question.');
+            return;
+        }
+        
+        // Show loading state
+        const submitBtn = document.getElementById('submit-question');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const submitText = document.getElementById('submit-text');
+        
+        submitBtn.disabled = true;
+        loadingSpinner.classList.remove('d-none');
+        submitText.textContent = 'Processing...';
+        
+        fetch('/ai-coach-api/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                question: questionText
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Reset loading state
+            submitBtn.disabled = false;
+            loadingSpinner.classList.add('d-none');
+            submitText.textContent = 'Ask AI Coach';
+            
+            if (data.success) {
+                // Hide form and show answer
+                document.getElementById('question-form').style.display = 'none';
+                document.getElementById('answer-card').style.display = 'block';
+                
+                // Display question and answer
+                document.getElementById('display-question').textContent = data.question;
+                document.getElementById('display-answer').innerHTML = formatAnswer(data.answer);
+                document.getElementById('answer-timestamp').textContent = new Date().toLocaleString();
+                
+                // Reload question history
+                loadQuestionHistory();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            // Reset loading state
+            submitBtn.disabled = false;
+            loadingSpinner.classList.add('d-none');
+            submitText.textContent = 'Ask AI Coach';
+            
+            console.error('Error:', error);
+            alert('An error occurred while processing your question.');
+        });
+    }
+    
+    function viewQuestionDetails(questionId) {
+        fetch(`/ai-coach-api/${questionId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Populate modal
+                    document.getElementById('modal-question').textContent = data.question;
+                    document.getElementById('modal-answer').innerHTML = formatAnswer(data.answer);
+                    document.getElementById('modal-timestamp').textContent = `Asked on ${data.created_at}`;
+                    
+                    // Set question ID for delete button
+                    document.getElementById('delete-question-btn').dataset.questionId = questionId;
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('questionDetailModal'));
+                    modal.show();
+                } else {
+                    alert('Error loading question details: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while loading question details.');
+            });
+    }
+    
+    function deleteQuestion(questionId) {
+        if (confirm('Are you sure you want to delete this question and its answer? This action cannot be undone.')) {
+            fetch(`/ai-coach-api/${questionId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal
+                    bootstrap.Modal.getInstance(document.getElementById('questionDetailModal')).hide();
+                    // Reload question history
+                    loadQuestionHistory();
+                    alert('Question deleted successfully!');
+                } else {
+                    alert('Error deleting question: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while deleting the question.');
+            });
+        }
+    }
+    
+    // Helper functions
+    function truncateText(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    }
+    
+    function formatAnswer(answer) {
+        // Simple formatting - replace newlines with <br> tags
+        return answer.replace(/\n/g, '<br>');
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

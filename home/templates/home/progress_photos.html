@@ -1,0 +1,362 @@
+{% extends 'home/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Progress Photos</h1>
+    <p class="lead">Track your physical transformation over time with progress photos.</p>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Upload New Photo</h5>
+                    <form id="photo-upload-form" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="photo" class="form-label">Photo</label>
+                            <input type="file" class="form-control" id="photo" name="photo" accept="image/*" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date" name="date" value="{{ today_date }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="weight" class="form-label">Current Weight (optional)</label>
+                            <input type="number" step="0.1" class="form-control" id="weight" name="weight" placeholder="Enter your current weight">
+                        </div>
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes (optional)</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Add any notes about your progress"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload Photo</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Compare Photos</h5>
+                    <p>Select two dates to compare your progress side by side.</p>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="before-date" class="form-label">Before Date</label>
+                            <select class="form-select" id="before-date">
+                                <option value="">Select a date</option>
+                                <!-- Will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="after-date" class="form-label">After Date</label>
+                            <select class="form-select" id="after-date">
+                                <option value="">Select a date</option>
+                                <!-- Will be populated by JavaScript -->
+                            </select>
+                        </div>
+                    </div>
+                    <button id="compare-btn" class="btn btn-secondary" disabled>Compare Photos</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4" id="comparison-container" style="display: none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Photo Comparison</h5>
+                    <div class="row">
+                        <div class="col-md-6 text-center">
+                            <h6 id="before-date-label">Before: </h6>
+                            <img id="before-image" class="img-fluid mb-2" src="" alt="Before photo">
+                            <p id="before-details"></p>
+                        </div>
+                        <div class="col-md-6 text-center">
+                            <h6 id="after-date-label">After: </h6>
+                            <img id="after-image" class="img-fluid mb-2" src="" alt="After photo">
+                            <p id="after-details"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2>Photo History</h2>
+    <div class="row" id="photo-gallery">
+        <!-- Will be populated by JavaScript -->
+        <div class="col-12 text-center" id="no-photos-message">
+            <p>No progress photos uploaded yet.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Photo Detail Modal -->
+<div class="modal fade" id="photoDetailModal" tabindex="-1" aria-labelledby="photoDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="photoDetailModalLabel">Progress Photo Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8 text-center">
+                        <img id="modal-image" class="img-fluid" src="" alt="Progress photo">
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Date:</strong> <span id="modal-date"></span></p>
+                        <p><strong>Weight:</strong> <span id="modal-weight"></span></p>
+                        <p><strong>Notes:</strong></p>
+                        <p id="modal-notes"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="delete-photo-btn">Delete Photo</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load all photos
+        loadProgressPhotos();
+        
+        // Handle photo upload form submission
+        document.getElementById('photo-upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            uploadPhoto();
+        });
+        
+        // Handle compare button click
+        document.getElementById('compare-btn').addEventListener('click', function() {
+            comparePhotos();
+        });
+        
+        // Handle delete photo button click
+        document.getElementById('delete-photo-btn').addEventListener('click', function() {
+            const photoId = this.dataset.photoId;
+            if (photoId) {
+                deletePhoto(photoId);
+            }
+        });
+    });
+    
+    function loadProgressPhotos() {
+        fetch('/progress-photo-api/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updatePhotoGallery(data.photos);
+                    updateDateSelects(data.photos);
+                } else {
+                    console.error('Error loading photos:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching photos:', error);
+            });
+    }
+    
+    function updatePhotoGallery(photos) {
+        const gallery = document.getElementById('photo-gallery');
+        const noPhotosMessage = document.getElementById('no-photos-message');
+        
+        // Clear existing content
+        gallery.innerHTML = '';
+        
+        if (photos.length === 0) {
+            gallery.appendChild(noPhotosMessage);
+            return;
+        }
+        
+        // Add photos to gallery
+        photos.forEach(photo => {
+            const col = document.createElement('div');
+            col.className = 'col-md-3 col-sm-6 mb-4';
+            
+            col.innerHTML = `
+                <div class="card h-100">
+                    <img src="${photo.image}" class="card-img-top" alt="Progress photo from ${photo.date}">
+                    <div class="card-body">
+                        <h5 class="card-title">${photo.date}</h5>
+                        ${photo.weight ? `<p class="card-text">Weight: ${photo.weight}</p>` : ''}
+                        <button class="btn btn-sm btn-primary view-photo" data-photo-id="${photo.id}">View Details</button>
+                    </div>
+                </div>
+            `;
+            
+            gallery.appendChild(col);
+        });
+        
+        // Add event listeners to view buttons
+        document.querySelectorAll('.view-photo').forEach(button => {
+            button.addEventListener('click', function() {
+                const photoId = this.dataset.photoId;
+                viewPhotoDetails(photoId);
+            });
+        });
+    }
+    
+    function updateDateSelects(photos) {
+        const beforeSelect = document.getElementById('before-date');
+        const afterSelect = document.getElementById('after-date');
+        const compareBtn = document.getElementById('compare-btn');
+        
+        // Clear existing options except the first one
+        beforeSelect.innerHTML = '<option value="">Select a date</option>';
+        afterSelect.innerHTML = '<option value="">Select a date</option>';
+        
+        // Add options for each photo
+        photos.forEach(photo => {
+            const option = document.createElement('option');
+            option.value = photo.id;
+            option.textContent = photo.date;
+            
+            beforeSelect.appendChild(option.cloneNode(true));
+            afterSelect.appendChild(option);
+        });
+        
+        // Enable compare button only when both dates are selected
+        function checkSelections() {
+            compareBtn.disabled = !beforeSelect.value || !afterSelect.value || beforeSelect.value === afterSelect.value;
+        }
+        
+        beforeSelect.addEventListener('change', checkSelections);
+        afterSelect.addEventListener('change', checkSelections);
+    }
+    
+    function uploadPhoto() {
+        const form = document.getElementById('photo-upload-form');
+        const formData = new FormData(form);
+        
+        fetch('/progress-photo-api/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reset form
+                form.reset();
+                // Set date to today
+                document.getElementById('date').value = new Date().toISOString().split('T')[0];
+                // Reload photos
+                loadProgressPhotos();
+                alert('Photo uploaded successfully!');
+            } else {
+                alert('Error uploading photo: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while uploading the photo.');
+        });
+    }
+    
+    function viewPhotoDetails(photoId) {
+        fetch(`/progress-photo-api/${photoId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const photo = data.photo;
+                    
+                    // Populate modal
+                    document.getElementById('modal-image').src = photo.image;
+                    document.getElementById('modal-date').textContent = photo.date;
+                    document.getElementById('modal-weight').textContent = photo.weight ? `${photo.weight} kg` : 'Not recorded';
+                    document.getElementById('modal-notes').textContent = photo.notes || 'No notes';
+                    
+                    // Set photo ID for delete button
+                    document.getElementById('delete-photo-btn').dataset.photoId = photo.id;
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('photoDetailModal'));
+                    modal.show();
+                } else {
+                    alert('Error loading photo details: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while loading photo details.');
+            });
+    }
+    
+    function comparePhotos() {
+        const beforeId = document.getElementById('before-date').value;
+        const afterId = document.getElementById('after-date').value;
+        
+        if (!beforeId || !afterId || beforeId === afterId) {
+            alert('Please select two different dates to compare.');
+            return;
+        }
+        
+        Promise.all([
+            fetch(`/progress-photo-api/${beforeId}/`).then(res => res.json()),
+            fetch(`/progress-photo-api/${afterId}/`).then(res => res.json())
+        ])
+        .then(([beforeData, afterData]) => {
+            if (beforeData.success && afterData.success) {
+                const beforePhoto = beforeData.photo;
+                const afterPhoto = afterData.photo;
+                
+                // Update comparison container
+                document.getElementById('before-image').src = beforePhoto.image;
+                document.getElementById('after-image').src = afterPhoto.image;
+                
+                document.getElementById('before-date-label').textContent = `Before: ${beforePhoto.date}`;
+                document.getElementById('after-date-label').textContent = `After: ${afterPhoto.date}`;
+                
+                let beforeDetails = beforePhoto.weight ? `Weight: ${beforePhoto.weight} kg` : '';
+                let afterDetails = afterPhoto.weight ? `Weight: ${afterPhoto.weight} kg` : '';
+                
+                // Add weight difference if both weights are available
+                if (beforePhoto.weight && afterPhoto.weight) {
+                    const weightDiff = (afterPhoto.weight - beforePhoto.weight).toFixed(1);
+                    const sign = weightDiff > 0 ? '+' : '';
+                    afterDetails += ` (${sign}${weightDiff} kg)`;
+                }
+                
+                document.getElementById('before-details').textContent = beforeDetails;
+                document.getElementById('after-details').textContent = afterDetails;
+                
+                // Show comparison container
+                document.getElementById('comparison-container').style.display = 'flex';
+            } else {
+                alert('Error loading photo details for comparison.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while comparing photos.');
+        });
+    }
+    
+    function deletePhoto(photoId) {
+        if (confirm('Are you sure you want to delete this photo? This action cannot be undone.')) {
+            fetch(`/progress-photo-api/${photoId}/`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal
+                    bootstrap.Modal.getInstance(document.getElementById('photoDetailModal')).hide();
+                    // Reload photos
+                    loadProgressPhotos();
+                    alert('Photo deleted successfully!');
+                } else {
+                    alert('Error deleting photo: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while deleting the photo.');
+            });
+        }
+    }
+</script>
+{% endblock %}

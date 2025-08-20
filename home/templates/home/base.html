@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Fitness Tracker{% endblock %}</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js for graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary-color: #4e73df;
+      --secondary-color: #1cc88a;
+      --dark-color: #5a5c69;
+      --light-color: #f8f9fc;
+    }
+    
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: var(--light-color);
+    }
+    
+    .navbar {
+      background-color: white;
+      box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    
+    .sidebar {
+      min-height: 100vh;
+      background: linear-gradient(180deg, var(--primary-color) 10%, #224abe 100%);
+      box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+    
+    .sidebar .nav-link {
+      color: rgba(255, 255, 255, 0.8);
+      padding: 1rem;
+      border-radius: 0.35rem;
+      margin: 0.2rem 0;
+    }
+    
+    .sidebar .nav-link:hover {
+      color: white;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .sidebar .nav-link.active {
+      color: white;
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .sidebar .nav-link i {
+      margin-right: 0.5rem;
+    }
+    
+    .content-wrapper {
+      background-color: white;
+      border-radius: 0.35rem;
+      box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .card {
+      border: none;
+      border-radius: 0.35rem;
+      box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+      margin-bottom: 1.5rem;
+    }
+    
+    .card-header {
+      background-color: white;
+      border-bottom: 1px solid #e3e6f0;
+      font-weight: bold;
+      color: var(--dark-color);
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-success {
+      background-color: var(--secondary-color);
+      border-color: var(--secondary-color);
+    }
+    
+    .progress {
+      height: 1rem;
+      margin: 0.5rem 0;
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-2 px-0 sidebar">
+        <div class="text-center py-4">
+          <h3 class="text-white">Fitness Tracker</h3>
+        </div>
+        <div class="nav flex-column">
+          <a href="{% url 'home' %}" class="nav-link {% if request.path == '/' %}active{% endif %}">
+            <i class="fas fa-dumbbell"></i> Workouts
+          </a>
+          <a href="{% url 'goals' %}" class="nav-link {% if request.path == '/goals/' %}active{% endif %}">
+            <i class="fas fa-bullseye"></i> Goals
+          </a>
+          <a href="{% url 'weight_tracker' %}" class="nav-link {% if request.path == '/weight/' %}active{% endif %}">
+            <i class="fas fa-weight"></i> Weight Tracker
+          </a>
+          <a href="{% url 'calendar' %}" class="nav-link {% if request.path == '/calendar/' %}active{% endif %}">
+            <i class="fas fa-calendar-alt"></i> Calendar
+          </a>
+          <a href="{% url 'personal_bests' %}" class="nav-link {% if request.path == '/personal-bests/' %}active{% endif %}">
+            <i class="fas fa-trophy"></i> Personal Bests
+          </a>
+          <a href="{% url 'journal' %}" class="nav-link {% if request.path == '/journal/' %}active{% endif %}">
+            <i class="fas fa-book"></i> Journal
+          </a>
+          <a href="{% url 'dashboard' %}" class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}">
+            <i class="fas fa-chart-line"></i> Dashboard
+          </a>
+          <a href="{% url 'rest_timer' %}" class="nav-link {% if request.path == '/rest-timer/' %}active{% endif %}">
+            <i class="fas fa-stopwatch"></i> Rest Timer
+          </a>
+          <a href="{% url 'progress_photos' %}" class="nav-link {% if request.path == '/progress-photos/' %}active{% endif %}">
+            <i class="fas fa-camera"></i> Progress Photos
+          </a>
+          <a href="{% url 'export_progress' %}" class="nav-link {% if request.path == '/export-progress/' %}active{% endif %}">
+            <i class="fas fa-file-export"></i> Export Progress
+          </a>
+          <a href="{% url 'ai_coach' %}" class="nav-link {% if request.path == '/ai-coach/' %}active{% endif %}">
+            <i class="fas fa-robot"></i> AI Coach
+          </a>
+        </div>
+      </div>
+      
+      <!-- Main Content -->
+      <div class="col-md-10 p-4">
+        <!-- Top Navbar -->
+        <nav class="navbar navbar-expand navbar-light mb-4 rounded">
+          <div class="container-fluid">
+            <div>
+              <h4 class="mb-0">{% block page_title %}{% endblock %}</h4>
+            </div>
+            <div class="ms-auto">
+              {% if user.is_authenticated %}
+                <span class="me-3">Welcome, {{ user.username.title }}!</span>
+                <form method="post" action="{% url 'logout' %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                  </button>
+                </form>
+              {% else %}
+                <a href="{% url 'login' %}" class="btn btn-outline-primary btn-sm">
+                  <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+                <a href="{% url 'register' %}" class="btn btn-primary btn-sm ms-2">
+                  <i class="fas fa-user-plus"></i> Register
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        </nav>
+        
+        <!-- Messages -->
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+        
+        <!-- Main Content -->
+        <div class="content-wrapper">
+          {% block content %}{% endblock %}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Bootstrap JS Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Common JavaScript -->
+  <script>
+    // CSRF helper for Django
+    function getCSRFToken() {
+      const name = 'csrftoken';
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        let [key, val] = cookie.trim().split('=');
+        if (key === name) return val;
+      }
+      return '';
+    }
+  </script>
+  
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
