@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1>AI Fitness Coach</h1>
+    <h1 style="font-weight: 800; font-size: 2.5rem; letter-spacing: -0.3px; line-height: 1.2; margin-bottom: 1.5rem;">AI Fitness Coach</h1>
     <p class="lead">Get personalized fitness advice and answers to your workout questions.</p>
 
     <div class="row">
@@ -13,7 +13,7 @@
                     <form id="question-form">
                         <div class="mb-3">
                             <label for="question" class="form-label">Your Fitness Question</label>
-                            <textarea class="form-control" id="question" rows="3" placeholder="e.g., How can I improve my squat form?" required></textarea>
+                            <textarea class="form-control" id="question" rows="3" placeholder="e.g., How can I improve my squat form? What's the best workout for building muscle? How should I structure my weekly routine?" required></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary" id="submit-question">
                             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="loading-spinner"></span>
@@ -119,7 +119,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    updateQuestionHistory(data.questions);
+                    updateQuestionHistory(data.history);
                 } else {
                     console.error('Error loading questions:', data.error);
                 }
@@ -174,7 +174,7 @@
         const questionText = document.getElementById('question').value.trim();
         
         if (!questionText) {
-            alert('Please enter a question.');
+            alert('Please enter your fitness question to get personalized advice.');
             return;
         }
         
@@ -210,9 +210,9 @@
                 document.getElementById('answer-card').style.display = 'block';
                 
                 // Display question and answer
-                document.getElementById('display-question').textContent = data.question;
-                document.getElementById('display-answer').innerHTML = formatAnswer(data.answer);
-                document.getElementById('answer-timestamp').textContent = new Date().toLocaleString();
+                document.getElementById('display-question').textContent = data.response.question;
+                document.getElementById('display-answer').innerHTML = formatAnswer(data.response.answer);
+                document.getElementById('answer-timestamp').textContent = data.response.created_at;
                 
                 // Reload question history
                 loadQuestionHistory();

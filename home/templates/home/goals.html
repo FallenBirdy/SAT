@@ -17,11 +17,11 @@
           <form id="goalForm">
             <div class="mb-3">
               <label for="goalTitle" class="form-label">Goal Title</label>
-              <input type="text" class="form-control" id="goalTitle" placeholder="e.g. Run 5km, Lose 5kg">
+              <input type="text" class="form-control" id="goalTitle" placeholder="e.g. Run 5km without stopping, Lose 10 pounds, Bench press bodyweight">
             </div>
             <div class="mb-3">
               <label for="goalDetails" class="form-label">Goal Details</label>
-              <textarea class="form-control" id="goalDetails" rows="3" placeholder="e.g. Complete by end of month, 3 times per week"></textarea>
+              <textarea class="form-control" id="goalDetails" rows="3" placeholder="e.g. Complete by end of month, train 3 times per week, track progress weekly"></textarea>
             </div>
             <div class="mb-3">
               <label for="goalTarget" class="form-label">Target Date (Optional)</label>
@@ -47,7 +47,7 @@
               {% for goal in goals %}
                 <div class="list-group-item list-group-item-action">
                   <div class="d-flex w-100 justify-content-between">
-                    <h5 class="mb-1">{{ goal.title }}</h5>
+                    <h5 class="mb-1" style="font-weight: 700; font-size: 1.2rem; letter-spacing: 0.2px; line-height: 1.3;">{{ goal.title }}</h5>
                     {% if goal.target_date %}
                       <small class="text-muted">Target: {{ goal.target_date }}</small>
                     {% endif %}
@@ -102,7 +102,7 @@
             <div class="mb-3">
               <label for="weightValue" class="form-label">Weight</label>
               <div class="input-group">
-                <input type="number" step="0.1" class="form-control" id="weightValue" placeholder="Enter your weight">
+                <input type="number" step="0.1" class="form-control" id="weightValue" placeholder="Enter current weight (lbs or kg)">
                 <span class="input-group-text">kg</span>
               </div>
             </div>
@@ -150,11 +150,11 @@
           datasets: [{
             label: 'Weight (kg)',
             data: weightData,
-            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: 'rgba(102, 126, 234, 0.2)',
+            borderColor: 'rgba(102, 126, 234, 1)',
             borderWidth: 2,
-            tension: 0.1,
-            pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+            fill: false,
+            pointBackgroundColor: 'rgba(102, 126, 234, 1)',
             pointRadius: 4
           }]
         },
@@ -225,7 +225,7 @@
       const weightDate = document.getElementById('weightDate').value;
       
       if (!weightValue || !weightDate) {
-        alert('Please enter both weight and date');
+        alert('Please enter both your current weight and the date to track your progress.');
         return;
       }
       
@@ -288,7 +288,7 @@
       const targetDate = document.getElementById('goalTarget').value;
       
       if (!title) {
-        alert('Please enter a goal title');
+        alert('Please enter a title for your fitness goal.');
         return;
       }
       

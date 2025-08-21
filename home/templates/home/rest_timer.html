@@ -90,12 +90,15 @@
         </div>
         
         <!-- Custom Time Input -->
-        <div class="input-group mb-3">
-          <input type="number" id="minutesInput" class="form-control" placeholder="Minutes" min="0" max="60" value="0">
-          <input type="number" id="secondsInput" class="form-control" placeholder="Seconds" min="0" max="59" value="0">
-          <button id="setCustomTime" class="btn btn-outline-secondary">
-            <i class="fas fa-check"></i> Set
-          </button>
+        <div class="mb-3">
+          <label class="form-label">Custom Time</label>
+          <div class="input-group">
+            <input type="number" id="minutesInput" class="form-control" placeholder="Min (0-60)" min="0" max="60" value="0">
+                    <input type="number" id="secondsInput" class="form-control" placeholder="Sec (0-59)" min="0" max="59" value="0">
+            <button id="setCustomTime" class="btn btn-outline-secondary">
+              <i class="fas fa-check"></i> Set
+            </button>
+          </div>
         </div>
         
         <!-- Notification Settings -->
@@ -140,7 +143,7 @@
       <div class="modal-body">
         <div class="mb-3">
           <label for="timerName" class="form-label">Timer Name</label>
-          <input type="text" class="form-control" id="timerName" placeholder="e.g., Bench Press Rest">
+          <input type="text" class="form-control" id="timerName" placeholder="e.g., Bench Press Rest, Squat Break, Cardio Recovery">
         </div>
         <div class="mb-3">
           <label for="timerDuration" class="form-label">Duration (seconds)</label>
@@ -431,7 +434,7 @@
     const isDefault = document.getElementById('setAsDefault').checked;
     
     if (!name || duration <= 0) {
-      alert('Please enter a valid name and duration.');
+      alert('Please enter a timer name and set a valid duration (at least 1 second).');
       return;
     }
     

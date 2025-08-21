@@ -19,11 +19,11 @@
           <form id="workoutForm">
             <div class="mb-3">
               <label for="workoutType" class="form-label">Workout Type</label>
-              <input type="text" class="form-control" id="workoutType" placeholder="e.g. Chest, Cardio, Legs">
+              <input type="text" class="form-control" id="workoutType" placeholder="e.g. Upper Body, Cardio, Leg Day, Full Body">
             </div>
             <div class="mb-3">
               <label for="workoutDetails" class="form-label">Workout Details</label>
-              <textarea class="form-control" id="workoutDetails" rows="3" placeholder="e.g. 3 sets of 12 reps, 5km run"></textarea>
+              <textarea class="form-control" id="workoutDetails" rows="3" placeholder="e.g. 3 sets of 12 reps bench press, 30 min treadmill run"></textarea>
             </div>
             <button type="button" class="btn btn-primary" onclick="logWorkout()">
               <i class="fas fa-plus-circle me-2"></i>Log Workout
@@ -67,7 +67,7 @@ function logWorkout() {
     const details = document.getElementById('workoutDetails').value.trim();
 
     if (!type || !details) {
-        alert("Please fill in both fields");
+        alert("Please fill in both workout type and details to log your workout.");
         return;
     }
 
@@ -75,7 +75,7 @@ function logWorkout() {
     const today = new Date();
     const dateStr = today.toISOString().split('T')[0];
 
-    fetch("/api/log-workout/", {
+    fetch("/log-workout/", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

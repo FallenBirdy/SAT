@@ -48,6 +48,11 @@ urlpatterns = [
     # AI Coach feature
     path('ai-coach/', views.ai_coach_view, name='ai_coach'),
     path('ai-coach-api/', views.ai_coach_api, name='ai_coach_api'),
+    
+    # Chart Data APIs
+    path('personal-best-progress-api/', views.personal_best_progress_api, name='personal_best_progress_api'),
+    path('weight-progress-api/', views.weight_progress_api, name='weight_progress_api'),
+    path('performance-metrics-api/', views.performance_metrics_api, name='performance_metrics_api'),
     path('ai-coach-api/<int:question_id>/', views.ai_coach_question_api, name='ai_coach_question_api'),
 ]
 

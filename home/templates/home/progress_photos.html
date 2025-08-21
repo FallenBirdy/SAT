@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1>Progress Photos</h1>
+    <h1 style="font-weight: 800; font-size: 2.5rem; letter-spacing: -0.3px; line-height: 1.2; margin-bottom: 1.5rem;">Progress Photos</h1>
     <p class="lead">Track your physical transformation over time with progress photos.</p>
 
     <div class="row mb-4">
@@ -11,6 +11,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Upload New Photo</h5>
                     <form id="photo-upload-form" enctype="multipart/form-data">
+                        {% csrf_token %}
                         <div class="mb-3">
                             <label for="photo" class="form-label">Photo</label>
                             <input type="file" class="form-control" id="photo" name="photo" accept="image/*" required>
@@ -21,11 +22,11 @@
                         </div>
                         <div class="mb-3">
                             <label for="weight" class="form-label">Current Weight (optional)</label>
-                            <input type="number" step="0.1" class="form-control" id="weight" name="weight" placeholder="Enter your current weight">
+                            <input type="number" step="0.1" class="form-control" id="weight" name="weight" placeholder="Current weight (lbs or kg)">
                         </div>
                         <div class="mb-3">
                             <label for="notes" class="form-label">Notes (optional)</label>
-                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Add any notes about your progress"></textarea>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="e.g. Feeling stronger, noticed muscle definition, completed new workout milestone"></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Upload Photo</button>
                     </form>
@@ -81,7 +82,7 @@
         </div>
     </div>
 
-    <h2>Photo History</h2>
+    <h2 style="font-weight: 700; font-size: 2rem; letter-spacing: -0.2px; line-height: 1.3; margin-bottom: 1.2rem;">Photo History</h2>
     <div class="row" id="photo-gallery">
         <!-- Will be populated by JavaScript -->
         <div class="col-12 text-center" id="no-photos-message">
@@ -179,7 +180,7 @@
             
             col.innerHTML = `
                 <div class="card h-100">
-                    <img src="${photo.image}" class="card-img-top" alt="Progress photo from ${photo.date}">
+                    <img src="${photo.image_url}" class="card-img-top" alt="Progress photo from ${photo.date}">
                     <div class="card-body">
                         <h5 class="card-title">${photo.date}</h5>
                         ${photo.weight ? `<p class="card-text">Weight: ${photo.weight}</p>` : ''}
@@ -232,8 +233,14 @@
         const form = document.getElementById('photo-upload-form');
         const formData = new FormData(form);
         
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
         fetch('/progress-photo-api/', {
             method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
             body: formData
         })
         .then(response => response.json())
@@ -264,7 +271,7 @@
                     const photo = data.photo;
                     
                     // Populate modal
-                    document.getElementById('modal-image').src = photo.image;
+                    document.getElementById('modal-image').src = photo.image_url;
                     document.getElementById('modal-date').textContent = photo.date;
                     document.getElementById('modal-weight').textContent = photo.weight ? `${photo.weight} kg` : 'Not recorded';
                     document.getElementById('modal-notes').textContent = photo.notes || 'No notes';
@@ -304,8 +311,8 @@
                 const afterPhoto = afterData.photo;
                 
                 // Update comparison container
-                document.getElementById('before-image').src = beforePhoto.image;
-                document.getElementById('after-image').src = afterPhoto.image;
+                document.getElementById('before-image').src = beforePhoto.image_url;
+                document.getElementById('after-image').src = afterPhoto.image_url;
                 
                 document.getElementById('before-date-label').textContent = `Before: ${beforePhoto.date}`;
                 document.getElementById('after-date-label').textContent = `After: ${afterPhoto.date}`;
@@ -337,8 +344,14 @@
     
     function deletePhoto(photoId) {
         if (confirm('Are you sure you want to delete this photo? This action cannot be undone.')) {
+            // Get CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
             fetch(`/progress-photo-api/${photoId}/`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                }
             })
             .then(response => response.json())
             .then(data => {

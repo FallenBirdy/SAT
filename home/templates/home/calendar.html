@@ -7,9 +7,9 @@
 {% block extra_css %}
 <style>
   .calendar-container {
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    background-color: var(--bg-primary, #ffffff);
+    border-radius: 10px;
+    box-shadow: var(--shadow-light, 0 2px 10px rgba(0, 0, 0, 0.1));
   }
   
   .calendar-header {
@@ -17,7 +17,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 15px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color, #e3e6f0);
   }
   
   .calendar-grid {
@@ -35,20 +35,20 @@
   
   .calendar-day {
     min-height: 100px;
-    border: 1px solid #eee;
+    border: 1px solid var(--border-color, #e3e6f0);
     border-radius: 4px;
     padding: 5px;
     position: relative;
   }
   
   .calendar-day.today {
-    background-color: rgba(54, 162, 235, 0.1);
-    border: 1px solid rgba(54, 162, 235, 0.5);
+    background-color: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.5);
   }
   
   .calendar-day.other-month {
-    background-color: #f9f9f9;
-    color: #aaa;
+    background-color: var(--bg-tertiary, #e3e6f0);
+    color: var(--text-muted, #858796);
   }
   
   .day-number {
